@@ -50,6 +50,16 @@
          (lines (split-string f-contents)))
     (seq-map (lambda (l) (read l)) lines)))
 
+(defun aoc21--read-variable-list (fn)
+  "Read a list of space separated items read via Lisp reader from file FN."
+  (let* ((f-contents (f-read fn))
+         (lines (seq-filter (lambda (s) (not (string-blank-p s)))
+                            (split-string f-contents "\n"))))
+    (seq-map (lambda (l)
+               (let ((parts (split-string l)))
+                 (mapcar #'read parts)))
+             lines)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Day 1 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -85,27 +95,16 @@
 ;;; Day 2 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun aoc21--day-2-read-commands ()
-  "Read a list of 'forward 1' style commands."
-  (let* ((f-contents (aoc21--read-file-for-day 2))
-         (lines (seq-filter (lambda (s) (not (string-blank-p s)))
-                            (split-string f-contents "\n"))))
-    (seq-map (lambda (l)
-               (let ((parts (split-string l)))
-                 (setcar (cdr parts) (read (cadr parts)))
-                 parts))
-             lines)))
-
 (defun aoc21--day-2-1 ()
   "Calculate the product of horizontal and depth of the submarine."
   (let* ((horiz 0)
          (depth 0)
-         (cmds (aoc21--day-2-read-commands)))
+         (cmds (aoc21--read-variable-list "puzzle2.txt")))
     (dolist (cmd cmds)
       (pcase cmd
-        (`("forward" ,amount) (setq horiz (+ horiz amount)))
-        (`("up" ,amount)      (setq depth (- depth amount)))
-        (`("down" ,amount)    (setq depth (+ depth amount)))))
+        (`(forward ,amount) (setq horiz (+ horiz amount)))
+        (`(up ,amount)      (setq depth (- depth amount)))
+        (`(down ,amount)    (setq depth (+ depth amount)))))
     (* horiz depth)))
 
 (defun aoc21--day-2-2 ()
@@ -113,14 +112,13 @@
   (let* ((aim 0)
          (horiz 0)
          (depth 0)
-         (cmds (aoc21--day-2-read-commands)))
+         (cmds (aoc21--read-variable-list "puzzle2.txt")))
     (dolist (cmd cmds)
       (pcase cmd
-        (`("forward" ,amount)
-         (setq horiz (+ horiz amount))
-         (setq depth (+ depth (* aim amount))))
-        (`("up" ,amount)      (setq aim (- aim amount)))
-        (`("down" ,amount)    (setq aim (+ aim amount)))))
+        (`(forward ,amount) (setq horiz (+ horiz amount))
+                            (setq depth (+ depth (* aim amount))))
+        (`(up ,amount)      (setq aim (- aim amount)))
+        (`(down ,amount)    (setq aim (+ aim amount)))))
     (* horiz depth)))
 
 (provide 'aoc21)
