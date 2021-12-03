@@ -50,6 +50,11 @@
          (lines (split-string f-contents)))
     (seq-map (lambda (l) (read l)) lines)))
 
+(defun aoc21--read-lines (fn)
+  "Return lines read from file FN."
+  (let* ((f-contents (f-read fn)))
+    (split-string f-contents)))
+
 (defun aoc21--read-variable-list (fn)
   "Read a list of space separated items read via Lisp reader from file FN."
   (let* ((f-contents (f-read fn))
@@ -59,6 +64,11 @@
                (let ((parts (split-string l)))
                  (mapcar #'read parts)))
              lines)))
+
+(defun aoc21--read-char-lists (fn)
+  "Return lines read from file FN."
+  (let* ((f-contents (f-read fn)))
+    (seq-map #'string-to-list (split-string f-contents))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Day 1 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -95,7 +105,7 @@
 ;;; Day 2 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun aoc21--day-2-1 ()
+(defun aoc21-day-2-1 ()
   "Calculate the product of horizontal and depth of the submarine."
   (let* ((horiz 0)
          (depth 0)
@@ -107,7 +117,7 @@
         (`(down ,amount)    (setq depth (+ depth amount)))))
     (* horiz depth)))
 
-(defun aoc21--day-2-2 ()
+(defun aoc21-day-2-2 ()
   "Calculate the product of horizontal and depth of the submarine using aim."
   (let* ((aim 0)
          (horiz 0)
@@ -120,6 +130,63 @@
         (`(up ,amount)      (setq aim (- aim amount)))
         (`(down ,amount)    (setq aim (+ aim amount)))))
     (* horiz depth)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 3 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun aoc21--bit-char-not (c)
+  "Apply the not operation to a bit character C."
+  (if (= c ?0) ?1 ?0))
+
+(defun aoc21--common-bit-at-pos (data n tie-val)
+  "For DATA, determine the most common bit at pos N returning TIE-VAL if counts equal."
+  (let ((one-ct 0)
+        (zero-ct 0))
+    (seq-map (lambda (d)
+               (if (eql (nth n d) ?1)
+                   (setq one-ct (1+ one-ct))
+                 (setq zero-ct (1+ zero-ct))))
+             data)
+    (cond
+     ((> one-ct zero-ct) ?1)
+     ((= one-ct zero-ct) tie-val)
+     (t                  ?0))))
+
+(defun aoc21--common-number-generator (data &optional inverse-p)
+  "Find the common bits for each position in DATA, inversing result if INVERSE-P is not-nil."
+  (let ((result '()))
+    (dotimes (bit-pos (length (car data)))
+      (let ((common-bit (aoc21--common-bit-at-pos data bit-pos ?_)))
+        (when inverse-p
+          (setq common-bit (aoc21--bit-char-not common-bit)))
+        (setq result (append result (list common-bit)))))
+    (read (concat "#b" result))))
+
+(defun aoc21-day-3-1 ()
+  "Solution for day 3-1."
+  (let* ((data (aoc21--read-char-lists "puzzle3.txt")))
+    (* (aoc21--common-number-generator data) (aoc21--common-number-generator data t))))
+
+(defun aoc21--filter-for-bit (data n bit)
+  "Filter DATA where the bit at position N is BIT."
+  (seq-filter (lambda (d) (eql (nth n (string-to-list d)) bit)) data))
+
+(defun aoc21--oxygen/co2-gen-rating (data &optional co2-p)
+  "Run the oxygen algorithm on DATA, switching to CO2 algorithm if CO2-P is not-nil."
+  (catch 'result
+    (dotimes (n (length (car data)))
+      (when (= 1 (length data))
+        (throw 'result (read (concat "#b" (car data)))))
+      (let ((bit (aoc21--common-bit-at-pos data n ?1)))
+        (when co2-p (setq bit (aoc21--bit-char-not bit)))
+        (setq data (aoc21--filter-for-bit data n bit))))))
+
+(defun aoc21-day-3-2 ()
+  "Solution for day 3-2."
+  (let* ((data (aoc21--read-char-lists "puzzle3.txt")))
+    (* (aoc21--oxygen/co2-gen-rating data) (aoc21--oxygen/co2-gen-rating data t))))
 
 (provide 'aoc21)
 
