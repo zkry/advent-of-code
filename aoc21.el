@@ -53,7 +53,7 @@
 (defun aoc21--read-lines (fn)
   "Return lines read from file FN."
   (let* ((f-contents (f-read fn)))
-    (split-string f-contents)))
+    (split-string f-contents "\n")))
 
 (defun aoc21--read-variable-list (fn)
   "Read a list of space separated items read via Lisp reader from file FN."
@@ -187,6 +187,74 @@
   "Solution for day 3-2."
   (let* ((data (aoc21--read-char-lists "puzzle3.txt")))
     (* (aoc21--oxygen/co2-gen-rating data) (aoc21--oxygen/co2-gen-rating data t))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 4 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun aoc21--board-idx (board row col)
+  (aref board (+ (* row 5) col)))
+
+(defun aoc21--calc-score (board called-nums number)
+  (let ((total 0))
+    (dotimes (row 5)
+      (dotimes (col 5)
+        (when (not (gethash (aoc21--board-idx board row col) called-nums nil))
+          (setq total (+ total (aoc21--board-idx board row col))))))
+    (* total number)))
+
+(defun aoc21--win-p (board called-nums)
+  (cl-labels ((checked-p (row col) (gethash (aoc21--board-idx board row col) called-nums nil)))
+    (or
+     (cl-loop for row from 0 to 4
+              thereis (cl-loop for col from 0 to 4
+                               always (checked-p row col)))
+     (cl-loop for col from 0 to 4
+              thereis (cl-loop for row from 0 to 4
+                               always (checked-p row col)))
+     (cl-loop for row from 0 to 4
+              for col from 0 to 4
+              always (checked-p row col))
+     (cl-loop for row from 0 to 4
+              for col downfrom 4 to 0
+              always (checked-p row col)))))
+
+(defun aoc21-day-4-1 ()
+  "Solve day 4-1 problem."
+  (catch 'solution
+    (let* ((lines (aoc21--read-lines "puzzle4.txt"))
+           (numbers (seq-map #'read (split-string (car lines) ",")))
+           (file-contents (f-read "puzzle4.txt"))
+           (boards (seq-map (lambda (board-txt)
+                              (apply #'vector (seq-map #'read (split-string board-txt))))
+                            (cdr (split-string file-contents "\n\n"))))
+           (called-nums (make-hash-table)))
+      (dolist (number numbers)
+        (puthash number t called-nums)
+        (dolist (board boards)
+          (when (aoc21--win-p board called-nums)
+            (throw 'solution (aoc21--calc-score board called-nums number)))))
+      (error "no solution found"))))
+
+(defun aoc21-day-4-2 ()
+  "Solve day 4-1 problem."
+  (catch 'solution
+    (let* ((lines (aoc21--read-lines "puzzle4.txt"))
+           (numbers (seq-map #'read (split-string (car lines) ",")))
+           (file-contents (f-read "puzzle4.txt"))
+           (boards (seq-map (lambda (board-txt)
+                              (apply #'vector (seq-map #'read (split-string board-txt))))
+                            (cdr (split-string file-contents "\n\n"))))
+           (board-ct (length boards))
+           (called-nums (make-hash-table)))
+      (dolist (number numbers)
+        (puthash number t called-nums)
+        (dolist (board boards)
+          (when (aoc21--win-p board called-nums)
+            (setq board-ct (1- board-ct))
+            (when (= 0 board-ct)
+              (throw 'solution (aoc21--calc-score board called-nums number)))
+            (fillarray board -1)))))))
 
 (provide 'aoc21)
 
