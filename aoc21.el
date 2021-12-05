@@ -31,6 +31,7 @@
 ;;; Code:
 
 (require 'f)
+(require 'aoc)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Utility Functions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -255,6 +256,48 @@
             (when (= 0 board-ct)
               (throw 'solution (aoc21--calc-score board called-nums number)))
             (fillarray board -1)))))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 5 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun aoc21-day-5 (&optional part-2)
+  (let* ((data (seq-map #'aoc-ints (aoc-lines (f-read "puzzle5.txt"))))
+         (points (make-hash-table :test 'equal)))
+    (dolist (pt data)
+      (pcase-let ((`(,x1 ,y1 ,x2 ,y2) pt))
+        (cond
+         ((= x1 x2)
+          (cl-loop for y downfrom y1 to y2
+                   do (inchash (cons x1 y) points))
+          (cl-loop for y from y1 to y2
+                   do (inchash (cons x1 y) points)))
+         ((= y1 y2)
+          (cl-loop for x downfrom x1 to x2
+                   do (inchash (cons x y1) points))
+          (cl-loop for x from x1 to x2
+                   do (inchash (cons x y1) points)))
+         (t (when part-2
+              (cl-loop for x from x1 to x2
+                       for y from y1 to y2
+                       do (inchash (cons x y) points))
+              (cl-loop for x downfrom x1 to x2
+                       for y from y1 to y2
+                       do (inchash (cons x y) points))
+              (cl-loop for x from x1 to x2
+                       for y downfrom y1 to y2
+                       do (inchash (cons x y) points))
+              (cl-loop for x downfrom x1 to x2
+                       for y downfrom y1 to y2
+                       do (inchash (cons x y) points)))))))
+    (cl-loop with total = 0
+             for v being the hash-values of points
+             when (> v 1)
+             do (cl-incf total)
+             finally return total)))
+
+(aoc21-day-5)
 
 (provide 'aoc21)
 
