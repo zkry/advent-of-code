@@ -297,7 +297,47 @@
              do (cl-incf total)
              finally return total)))
 
-(aoc21-day-5)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 6 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun aoc21-day-6-1 (&optional part-2)
+  (let* ((db (make-hash-table :test 'equal)))
+    (dotimes (day 256)
+      (let ((new-fish-ct 0)
+            (old-fish '()))
+        (dolist (fish data)
+          (let ((new-ct fish))
+            (if (= 0 new-ct)
+                (progn
+                  (setq new-ct 6)
+                  (cl-incf new-fish-ct))
+              (setq new-ct (1- new-ct)))
+            (setq old-fish (cons new-ct old-fish))))
+        (setq data (append (make-list new-fish-ct 8) old-fish))))
+    (length data)))
+
+(defun aoc21-day-6-2 ()
+  (let* ((data (aoc-ints (f-read "puzzle6.txt")))
+         (db (make-hash-table :test 'equal)))
+    (dolist (fish data)
+      (inchash fish db))
+    (dotimes (day 256)
+      (let ((new-db (make-hash-table :test 'equal))
+            (new-ct 0))
+        (maphash (lambda (day ct)
+                   (if (= 0 day)
+                       (progn
+                         (setq new-ct ct)
+                         (puthash 6 (+ ct (gethash 6 new-db 0)) new-db))
+                     (puthash (1- day) (+ ct (gethash (1- day) new-db 0)) new-db)))
+                 db)
+        (inchash 8 new-db new-ct)
+        (setq db new-db)))
+    (cl-loop with total = 0
+             for ct being the hash-values of db
+             do (setq total (+ total ct))
+             finally return total)))
 
 (provide 'aoc21)
 
