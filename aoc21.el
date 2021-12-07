@@ -339,6 +339,25 @@
              do (setq total (+ total ct))
              finally return total)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 7 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun aoc21--day-7-cost (x)
+  (/ (* x (+ x 1)) 2))
+
+(defun aoc21-day-7-2 ()
+  (let* ((data (aoc-ints (f-read "puzzle7.txt"))))
+    (cl-loop for i from 1 to 1000
+             minimize (cl-loop for d in data
+                               sum (abs (- i d))))))
+
+(defun aoc21-day-7-2 ()
+  (let* ((data (aoc-ints (f-read "puzzle7.txt"))))
+    (cl-loop for i from 1 to 1000
+             minimize (cl-loop for d in data
+                               sum (aoc21--day-7-cost (abs (- i d)))))))
+
 (provide 'aoc21)
 
 ;;; aoc21.el ends here
