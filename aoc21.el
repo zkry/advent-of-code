@@ -393,8 +393,8 @@
 
     ;; Count the number of times each letter occurs. Based on these
     ;; counts the following facts appear:
-    ;; - the letter that occurs 6 timse is segment 0
-    ;; - the letter that occurs 4 timse is segment 0
+    ;; - the letter that occurs 6 timse is segment 1
+    ;; - the letter that occurs 4 timse is segment 4
     ;; - the letter that occurs 9 timse is segment 5
     (let ((freqs (make-hash-table :test 'equal)))
       (cl-loop for c across (string-join segments "")
@@ -452,7 +452,7 @@
    ((not (cl-set-exclusive-or segs '(0 1 2 3 4 5 6))) "8")
    ((not (cl-set-exclusive-or segs '(0 1 2 3 5 6))) "9")))
 
-(defun aoc21-day-8-1 ()
+(defun aoc21-day-8 ()
   (interactive)
   (let* ((data (seq-map (lambda (l) (seq-map (lambda (x) (split-string x))
                                              (split-string l "|")))
