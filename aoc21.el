@@ -358,6 +358,117 @@
              minimize (cl-loop for d in data
                                sum (aoc21--day-7-cost (abs (- i d)))))))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 8 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun aoc21--day-8-narrow-down-segments (str seg-filters db)
+  "Narrow down digit STR to be SEG-FILTERS in DB."
+  (cl-loop for c across str
+           do (puthash c (cl-intersection seg-filters (gethash c db '())) db)))
+
+(defun aoc-21--day-8-set-chars (c num db)
+  "Express fact that char C is the segment NUM in DB."
+  (cl-loop for i across "abcdefg"
+           when (not (equal i c))
+           do (puthash i (remove num (gethash i db '())) db))
+  (puthash c (list num) db))
+
+(defun aoc21-determine-mapping (segments)
+  "Return a map of char to segment from list of SEGMENTS."
+  (let ((db (make-hash-table :test 'equal))
+        (one-letters "")
+        (seven-letters "")
+        (six-letters '()))
+    ;; Initialize segments: express the fact that every char
+    ;; could be any segment.  Segments are as follows:
+    ;;      00
+    ;;     1  2
+    ;;      33
+    ;;     4  5
+    ;;      66
+    (cl-loop for i across "abcdefg"
+             do (puthash i '(0 1 2 3 4 5 6) db))
+
+    ;; Count the number of times each letter occurs. Based on these
+    ;; counts the following facts appear:
+    ;; - the letter that occurs 6 timse is segment 0
+    ;; - the letter that occurs 4 timse is segment 0
+    ;; - the letter that occurs 9 timse is segment 5
+    (let ((freqs (make-hash-table :test 'equal)))
+      (cl-loop for c across (string-join segments "")
+               do (inchash c freqs))
+      (cl-loop for k being the hash-keys of freqs using (hash-values v)
+               do (cond
+                   ((= v 6) (aoc-21--day-8-set-chars k 1 db))
+                   ((= v 9) (aoc-21--day-8-set-chars k 5 db))
+                   ((= v 4) (aoc-21--day-8-set-chars k 4 db)))))    
+
+    ;; narrow down the segments based on the characters in the digit.
+    ;; For example, given a digit of length two, we know that its segments
+    ;; must be either 2 or 5.
+    (dolist (s segments)
+      (pcase (length s)
+                  (2
+                   (progn 
+                     (aoc21--day-8-narrow-down-segments s '(2 5) db)
+                     (setq one-letters s)))
+                  (4 (aoc21--day-8-narrow-down-segments s '(1 2 3 5) db))
+                  (3 (aoc21--day-8-narrow-down-segments s '(0 2 5) db)
+                     (setq seven-letters s))
+                  (7 (aoc21--day-8-narrow-down-segments s '(0 1 2 3 4 5 6) db))
+                  (6 (setq six-letters (cl-adjoin s six-letters)))))
+
+    ;; Special deduction: we can deduce segment 0 automatically from one and seven. 
+    (let ((zero-letter (cl-set-difference (seq-into seven-letters 'list) (seq-into one-letters 'list))))
+      (puthash (car zero-letter) '(0) db)
+      (cl-loop for i across "abcdefg"
+               when (not (equal i (car zero-letter)))
+               do (puthash i (remove 0 (gethash i db '())) db)))
+
+    ;; Iterate through the numbers we definitely know, eliminating
+    ;; options of other numbers that we know they can't be.
+    (while (not (cl-loop for v being the hash-values of db
+                         always (= 1 (length v))))
+      (cl-loop for k being the hash-keys of db using (hash-values v)
+               when (= (length v) 1)
+               do (cl-loop for i across "abcdefg"
+                           when (not (equal i k))
+                           do (puthash i (remove (car v) (gethash i db '())) db))))
+    db))
+
+(defun aoc21-get-digit (segs)
+  "Return whcih digit representation is the set of SEGS."
+  (cond
+   ((not (cl-set-exclusive-or segs '(0 1 2 4 5 6))) "0")
+   ((not (cl-set-exclusive-or segs '(2 5))) "1")
+   ((not (cl-set-exclusive-or segs '(0 2 3 4 6))) "2")
+   ((not (cl-set-exclusive-or segs '(0 2 3 5 6))) "3")
+   ((not (cl-set-exclusive-or segs '(1 2 3 5))) "4")
+   ((not (cl-set-exclusive-or segs '(0 1 3 5 6))) "5")
+   ((not (cl-set-exclusive-or segs '(0 1 3 4 5 6))) "6")
+   ((not (cl-set-exclusive-or segs '(0 2 5))) "7")
+   ((not (cl-set-exclusive-or segs '(0 1 2 3 4 5 6))) "8")
+   ((not (cl-set-exclusive-or segs '(0 1 2 3 5 6))) "9")))
+
+(defun aoc21-day-8-1 ()
+  (interactive)
+  (let* ((data (seq-map (lambda (l) (seq-map (lambda (x) (split-string x))
+                                             (split-string l "|")))
+                        (aoc-lines (f-read "puzzle8.txt"))))
+         (sum 0))
+    (dolist (d data)
+      (let* ((sequences (car d))
+             (nums (cadr d))
+             (mapping (aoc21-determine-mapping sequences))
+             (digits '()))
+        (dolist (n nums)
+          (let ((seg-set (seq-map (lambda (x) (car (gethash x mapping))) (seq-into n 'list))))
+            (setq digits (append digits (list (aoc21-get-digit seg-set))))))
+        (setq sum (+ sum (read (string-join digits ""))))))
+    sum))
+
 (provide 'aoc21)
 
 ;;; aoc21.el ends here
