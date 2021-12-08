@@ -46,6 +46,27 @@
         (push (string-to-number (match-string 0)) matches))
       (reverse matches))))
 
+(defun pp-hash (table)
+  (let ((data (nthcdr 2 (nbutlast
+                         (split-string (pp-to-string table) "[()]")
+                         2))))
+    (concat "(" (car data) ")")))
+
+(defun aocp- (x &optional form)
+  (with-current-buffer (get-buffer-create "*aoc-output*")
+    (goto-char (point-min))
+    (insert ">>>>>>>>>>" (current-time-string) "\n" )
+    (when form
+      (insert (pp-to-string form) "\n"))
+    (if (hash-table-p x)
+        (insert (yaml-encode x))
+      (insert (pp-to-string x)))
+    (insert "\n\n"))
+  x)
+
+(defmacro aocp (form)
+  `(aocp- ,form (quote ,form)))
+
 (provide 'aoc)
 
 ;;; aoc.el ends here
