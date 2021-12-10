@@ -546,6 +546,78 @@
         (setq sizes (cons size sizes))))
     (apply '* (seq-take (sort sizes '>) 3))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 10 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun aoc21-day-10-1 ()
+  (let* ((data (aoc-lines (f-read "puzzle10.txt")))
+         (score 0))
+    (dolist (line data)
+      (let ((parens))
+        (cl-loop for c across line
+                 do (pcase c
+                      (?\( (push 'round parens))
+                      (?\[ (push 'square parens))
+                      (?\{ (push 'curly parens))
+                      (?\< (push 'angle parens))
+                      (?\) (let ((elt (pop parens)))
+                             (when (not (eql 'round elt))
+                               (setq score (+ score 3))
+                               (return))))
+                      (?\] (let ((elt (pop parens)))
+                             (when (not (eql 'square elt))
+                               (setq score (+ score 57))
+                               (return))))
+                      (?\} (let ((elt (pop parens)))
+                             (when (not (eql 'curly elt))
+                               (setq score (+ score 1197))
+                               (return))))
+                      (?\> (let ((elt (pop parens)))
+                             (when (not (eql 'angle elt))
+                               (setq score (+ score 25137))
+                               (return))))))))
+    score))
+
+(defun aoc21--day-10-calculate-completion-pts (parens)
+  (let ((total 0))
+    (dolist (paren parens)
+      (setq total (* 5 total))
+      (pcase paren
+        ('round (setq total (+ total 1)))
+        ('square (setq total (+ total 2)))
+        ('curly (setq total (+ total 3)))
+        ('angle (setq total (+ total 4)))))
+    total))
+
+(defun aoc21-day-10-2 ()
+  (let* ((data (aoc-lines (f-read "puzzle10.txt")))
+         (scores '()))
+    (dolist (line data)
+      (let ((parens))
+        (cl-loop for c across line
+                 do (pcase c
+                      (?\( (push 'round parens))
+                      (?\[ (push 'square parens))
+                      (?\{ (push 'curly parens))
+                      (?\< (push 'angle parens))
+                      (?\) (let ((elt (pop parens)))
+                             (when (not (eql 'round elt))
+                               (return))))
+                      (?\] (let ((elt (pop parens)))
+                             (when (not (eql 'square elt))
+                               (return))))
+                      (?\} (let ((elt (pop parens)))
+                             (when (not (eql 'curly elt))
+                               (return))))
+                      (?\> (let ((elt (pop parens)))
+                             (when (not (eql 'angle elt))
+                               (return)))))
+                 finally do (push (aoc21--day-10-calculate-completion-pts (aocp parens)) scores))))
+    (nth (/ (length scores) 2) (sort scores '<))))
+
+(aocp (aoc21-day-10-2))
+
 (provide 'aoc21)
 
 ;;; aoc21.el ends here
