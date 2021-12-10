@@ -346,7 +346,7 @@
 (defun aoc21--day-7-cost (x)
   (/ (* x (+ x 1)) 2))
 
-(defun aoc21-day-7-2 ()
+(defun aoc21-day-7-1 ()
   (let* ((data (aoc-ints (f-read "puzzle7.txt"))))
     (cl-loop for i from 1 to 1000
              minimize (cl-loop for d in data
@@ -468,6 +468,83 @@
             (setq digits (append digits (list (aoc21-get-digit seg-set))))))
         (setq sum (+ sum (read (string-join digits ""))))))
     sum))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 9 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun aaref (array &rest idxs)
+  (while idxs
+    (setq array (aref array (car idxs)))
+    (setq idxs (cdr idxs)))
+  array)
+
+(defun aoc-num-grid (text)
+  "Split TEXT as a vector of vectors."
+  (vconcat
+   (seq-map (lambda (line) (vconcat
+                            (seq-map (lambda (x) (read (char-to-string x)))
+                                     (string-to-vector line))))
+            (split-string (string-trim-right text "\n") "\n"))))
+
+(defun aoc21-day-9-1 ()
+  (let* ((input (aoc-num-grid (f-read "puzzle9.txt"))) ;
+         (row-ct (length input))
+         (col-ct (length (aref input 0)))
+         (sum 0)
+         (low-pts '()))
+    (dotimes (r row-ct)
+      (dotimes (c col-ct)
+        (let ((v (aaref input r c))
+              (up (or (and (<= 0 (1- r)) (aaref input (1- r) c)) 10))
+              (left (or (and (<= 0 (1- c)) (aaref input r (1- c))) 10))
+              (down (or (and (< (1+ r) row-ct) (aaref input (1+ r) c)) 10))
+              (right (or (and (< (1+ c) col-ct) (aaref input r (1+ c))) 10)))
+          (when (and (< v up)
+                     (< v down)
+                     (< v left)
+                     (< v right))
+            (setq low-pts (cl-adjoin (cons r c) low-pts))
+            (setq sum (+ sum v 1))))))
+    low-pts))
+
+(defun aoc21--day-9-basin-size (row col data)
+  (if (or (< row 0) (< col 0) (>= row (length data)) (>= col (length (aref data 0)))
+          (= (aaref data row col) -1)
+          (= (aaref data row col) 9))
+      0
+    (setf (aref (aref data row) col) -1)
+    (+ 1
+       (aoc21--day-9-basin-size (1- row) col data)
+       (aoc21--day-9-basin-size (1+ row) col data)
+       (aoc21--day-9-basin-size row (1- col) data)
+       (aoc21--day-9-basin-size row (1+ col) data))))
+
+(defun aoc21-day-9-2 ()
+  (let* ((input (aoc-num-grid (f-read "puzzle9.txt"))) ;
+         (row-ct (length input))
+         (col-ct (length (aref input 0)))
+         (sum 0)
+         (low-pts '())
+         (sizes '()))
+    (dotimes (r row-ct)
+      (dotimes (c col-ct)
+        (let ((v (aaref input r c))
+              (up (or (and (<= 0 (1- r)) (aaref input (1- r) c)) 10))
+              (left (or (and (<= 0 (1- c)) (aaref input r (1- c))) 10))
+              (down (or (and (< (1+ r) row-ct) (aaref input (1+ r) c)) 10))
+              (right (or (and (< (1+ c) col-ct) (aaref input r (1+ c))) 10)))
+          (when (and (< v up)
+                     (< v down)
+                     (< v left)
+                     (< v right))
+            (setq low-pts (cl-adjoin (cons r c) low-pts))))))
+    (dolist (pt low-pts)
+      (let* ((row (car pt))
+             (col (cdr pt))
+             (size (aoc21--day-9-basin-size row col input)))
+        (setq sizes (cons size sizes))))
+    (apply '* (seq-take (sort sizes '>) 3))))
 
 (provide 'aoc21)
 
