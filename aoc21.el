@@ -616,7 +616,75 @@
                  finally do (push (aoc21--day-10-calculate-completion-pts (aocp parens)) scores))))
     (nth (/ (length scores) 2) (sort scores '<))))
 
-(aocp (aoc21-day-10-2))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 11 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun aoc21-day-11--energize-neighbors (data r c)
+  (cl-loop for dr from -1 to 1
+           do (cl-loop for dc from -1 to 1
+                       when (and (not (and (zerop dr) (zerop dc)))
+                                 (>= 9 (+ r dr) 0)
+                                 (>= 9(+ c dc) 0))
+                       do (progn
+                            (aocp (cons dr dc))
+                            (cl-incf (aref (aref data (+ r dr)) (+ c dc))))))
+  data)
+
+(defun aoc21-day-11-1 ()
+  (let* ((data (aoc-num-grid (f-read "puzzle13.txt"))) ;; 
+         (flash-ct 0)
+         (debug 0))
+    (dotimes (_ 100)
+      (dotimes (r 10)
+        (dotimes (c 10)
+          (cl-incf (aref (aref data r) c))))
+      (let ((flashes '()))
+        (catch 'done
+          (while t
+            (let ((prev-ct (length flashes)))
+             (dotimes (r 10)
+               (dotimes (c 10)
+                 (when (and (> (aaref data r c) 9) (not (member (list r c) flashes)))
+                   (aoc21-day-10--energize-neighbors data r c)
+                   (setq flashes (cl-adjoin (list r c) flashes :test 'equal)))))
+             (when (not (> (length flashes) prev-ct))
+               (throw 'done nil)))))
+        (dolist (flash flashes)
+          (pcase-let ((`(,r ,c) flash))
+            (when (> (aaref data r c) 9)
+              (setf (aref (aref data r) c) 0)
+              (cl-incf flash-ct))))))
+    flash-ct))
+
+(defun aoc21-day-11-2 ()
+  (let* ((data (aoc-num-grid (f-read "puzzle13.txt"))) ;; 
+         (step 0)
+         (debug 0))
+    (catch 'all-flash
+      (while t
+        (cl-incf step)
+        (dotimes (r 10)
+          (dotimes (c 10)
+            (cl-incf (aref (aref data r) c))))
+        (let ((flashes '()))
+          (catch 'done
+            (while t
+              (let ((prev-ct (length flashes)))
+                (dotimes (r 10)
+                  (dotimes (c 10)
+                    (when (and (> (aaref data r c) 9) (not (member (list r c) flashes)))
+                      (aoc21-day-10--energize-neighbors data r c)
+                      (setq flashes (cl-adjoin (list r c) flashes :test 'equal)))))
+                (when (not (> (length flashes) prev-ct))
+                  (throw 'done nil)))))
+          (when (= 100 (length flashes))
+            (throw 'all-flash step))
+          (dolist (flash flashes)
+            (pcase-let ((`(,r ,c) flash))
+              (when (> (aaref data r c) 9)
+                (setf (aref (aref data r) c) 0)))))))))
+
 
 (provide 'aoc21)
 
