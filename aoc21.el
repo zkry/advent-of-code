@@ -685,6 +685,39 @@
               (when (> (aaref data r c) 9)
                 (setf (aref (aref data r) c) 0)))))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 12 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun aoc21-day-12-small-cave-p (sym)
+  (equal (symbol-name sym) (downcase (symbol-name sym))))
+
+(defvar aoc21-day-12-paths nil)
+
+(defun aoc21-day-12-traverse (at paths path &optional no-small-cave)
+  (if (eql at 'end)
+      (setq aoc21-day-12-paths (append aoc21-day-12-paths (list path)))
+    (let ((to-paths (seq-filter (lambda (p)
+                                  (and
+                                   (not (eql 'start (cadr p)))
+                                   (or (not (aoc21-day-12-small-cave-p (cadr p)))
+                                       no-small-cave
+                                       (not (memq (cadr p) path)))
+                                   (eql (car p) at)))
+                                paths)))
+      (dolist (p to-paths)
+        (pcase-let ((`(,at ,cave) p))
+          (let ((small-cave-twice-p (and (aoc21-day-12-small-cave-p cave)
+                                         (memq cave path))))
+            (aoc21-day-12-traverse cave paths (append path (list cave))
+                                   (if small-cave-twice-p nil no-small-cave))))))))
+
+(defun aoc21-day-12-2 ()
+  (let* ((data (aoc-parsed-lines (f-read "puzzle12.txt") "\\([^-]+\\)-\\([^-]+\\)" 'read 'read)))
+    (setq aoc21-day-12-paths nil)
+    (setq data (append data (seq-map (lambda (x) (list (cadr x) (car x))) data)))
+    (aoc21-day-12-traverse 'start data '(start) t)
+    (aocp (length aoc21-day-12-paths))))
 
 (provide 'aoc21)
 
