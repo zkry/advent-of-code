@@ -67,6 +67,38 @@
 (defmacro aocp (form)
   `(aocp- ,form (quote ,form)))
 
+(defun aoc-groups (text)
+  "Return groups of TEXT."
+  (split-string (string-trim-right text "\n") "\n\n"))
+
+(defun aoc-groups-of (text subdiv-fn)
+  "Return groups of TEXT parsed by SUBDIV-FN."
+  (let ((groups (split-string (string-trim-right text "\n") "\n\n")))
+    (seq-map subdiv-fn groups)))
+
+(defun aoc--parse-line (line regexp conversions)
+  "Extract REGEXP matche on LINE, converting them with CONVERSIONS."
+  (let ((fields))
+    (when (string-match regexp line)
+      (dotimes (i (length conversions))
+        (let ((conv-fn (nth i conversions))
+              (matched-val (match-string (1+ i) line)))
+          (when matched-val
+            (when conv-fn
+              (setq matched-val (funcall conv-fn matched-val)))
+            (push matched-val fields))))
+      (reverse fields))))
+
+(defun aoc-parsed-lines (text regexp &rest conversions)
+  "Parse TEXT according to REGEXP with CONVERSIONS."
+  (let ((lines (aoc-lines text)))
+    (seq-map (lambda (line)
+               (let ((parse (aoc--parse-line line regexp conversions)))
+                 (unless parse
+                   (error "parse failed: %s" line))
+                 parse))
+             lines)))
+
 (provide 'aoc)
 
 ;;; aoc.el ends here

@@ -719,6 +719,51 @@
     (aoc21-day-12-traverse 'start data '(start) t)
     (aocp (length aoc21-day-12-paths))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 13 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun aoc21-day-13-fold-vertical (fold-x pts)
+  (delete-dups
+   (seq-map (lambda (pt)
+              (pcase-let ((`(,x ,y) pt))
+                (if (> x fold-x)
+                    (list (- fold-x (- x fold-x)) y)
+                  (list x y))))
+            pts)))
+
+(defun aoc21-day-13-fold-horizontal (fold-y pts)
+  (delete-dups
+   (seq-map (lambda (pt)
+              (pcase-let ((`(,x ,y) pt))
+                (if (> y fold-y)
+                    (list x (- fold-y (- y fold-y)))
+                  (list x y))))
+            pts)))
+
+(defun aoc21-day-13-1 ()
+  (let* ((data (aoc-groups (f-read "puzzle13.txt")))
+         (pts (seq-map #'aoc-ints (aoc-lines (nth 0 data))))
+         (folds (aoc-parsed-lines (nth 1 data) "fold along \\(.\\)=\\(.*\\)" 'read 'read)))
+    (length (aoc21-day-13-fold-vertical 655 pts))))
+
+(defun aoc21-day-13-2 ()
+  (let* ((data (aoc-groups (f-read "puzzle13.txt")))
+         (pts (seq-map #'aoc-ints (aoc-lines (nth 0 data))))
+         (folds (aoc-parsed-lines (nth 1 data) "fold along \\(.\\)=\\(.*\\)" 'read 'read)))
+    (dolist (fold folds)
+      (pcase fold
+        (`(x ,amt) (setq pts (aoc21-day-13-fold-vertical amt pts)))
+        (`(y ,amt) (setq pts (aoc21-day-13-fold-horizontal amt pts)))))
+    (with-current-buffer (get-buffer-create "*aoc-answer*")
+      (erase-buffer)
+      (dotimes (row 100)
+        (dotimes (col 100)
+          (if (member (list row col) pts)
+              (insert "#")
+            (insert " ")))
+        (insert "\n")))))
+
 (provide 'aoc21)
 
 ;;; aoc21.el ends here
