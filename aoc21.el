@@ -764,6 +764,53 @@
             (insert " ")))
         (insert "\n")))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 14 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun aoc21-day-14-1 ()
+  (let* ((groups (aoc-groups (f-read "puzzle14.txt"))) ;; 
+         (start-list (seq-map (lambda (x) (read (char-to-string x))) (car groups)))
+         (first-sym (car start-list))
+         (last-sym (last start-list))
+         (rule-list (aoc-parsed-lines (cadr groups) "\\(.\\)\\(.\\) -> \\(.\\)" #'read #'read #'read))
+         (rules (seq-map (lambda (l) (cons (list (car l) (cadr l)) (caddr l))) rule-list))
+         (start (make-hash-table :test 'equal)))
+    (seq-mapn (lambda (a b)
+                (inchash (list a b) start))
+              start-list (cdr start-list))
+    (dotimes (n 40)
+      (let ((next (make-hash-table :test 'equal)))
+        (maphash (lambda (polymer ct)
+                   (let* ((left (car polymer))
+                          (right (cadr polymer))
+                          (match (cdr (assoc (list left right) rules))))
+                     (inchash (list left match) next ct)
+                     (inchash (list match right) next ct)))
+                 start)
+        (setq start next)))
+    (let ((counts (make-hash-table)))
+      (maphash (lambda (polymer ct)
+                 (let ((left (car polymer))
+                       (right (cadr polymer)))
+                   (inchash left counts ct)
+                   (inchash right counts ct)))
+               start)
+      (inchash first-sym counts)
+      (inchash last-sym counts)
+      (maphash (lambda (k ct)
+                 (puthash k (/ ct 2) counts))
+               counts)
+      (let ((min 99999999999999)
+            (max 0))
+        (maphash (lambda (k v)
+                   (when (> v max)
+                     (setq max v))
+                   (when (< v min)
+                     (setq min v)))
+                 counts)
+        (- max min)))))
+
 (provide 'aoc21)
 
 ;;; aoc21.el ends here
