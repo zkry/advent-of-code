@@ -890,6 +890,112 @@
                   (heap-add heap (list (min d (+ w at-weight)) row col))
                   (puthash (list row col) (min d (+ w at-weight)) distances))))))))))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Day 16 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defvar aoc-21-version-sum nil)
+(defvar aoc-21-position nil)
+(defvar aoc-21-data nil)
+
+(defun aoc-21-read-bits (ct)
+  (let ((s ""))
+    (dotimes (n ct)
+      (setq s (concat s (format "%d" (aref aoc-21-data (+ aoc-21-position n))))))
+    (cl-incf aoc-21-position ct)
+    (read (concat "#b" s))))
+
+(defun aoc-21-grab-bits (ct)
+  (let ((bits '()))
+    (dotimes (n ct)
+      (push (aref aoc-21-data (+ aoc-21-position n)) bits))
+    (cl-incf aoc-21-position ct)
+    (reverse bits)))
+
+(defun aoc-21-binary-to-decimal (digits)
+  (let ((num ""))
+    (dolist (d digits)
+      (setq num (concat num (format "%d" d))))
+    (read (concat "#b" num))))
+
+(defun aoc-21-hex-to-binary (h)
+  (vconcat (seq-mapcat (lambda (hd)
+                         (pcase hd
+                           (?0 '(0 0 0 0)) (?1 '(0 0 0 1)) (?2 '(0 0 1 0)) (?3 '(0 0 1 1)) (?4 '(0 1 0 0))
+                           (?5 '(0 1 0 1)) (?6 '(0 1 1 0)) (?7 '(0 1 1 1)) (?8 '(1 0 0 0))
+                           (?9 '(1 0 0 1)) (?A '(1 0 1 0)) (?B '(1 0 1 1)) (?C '(1 1 0 0))
+                           (?D '(1 1 0 1)) (?E '(1 1 1 0)) (?F '(1 1 1 1)) ))
+                       (string-to-list h))))
+
+(defun aoc-21-parse-version ()
+  (aoc-21-read-bits 3))
+
+(defun aoc-21-parse-packet-type ()
+  (aoc-21-read-bits 3))
+
+(defun aoc-21-parse-literal-packet ()
+  (let ((number '()))
+    (catch 'done
+      (while t
+        (let ((bits (aoc-21-grab-bits 5)))
+          (setq number (append number (cdr bits)))
+          (when (= 0 (car bits))
+            (throw 'done number)))))
+    (aoc-21-binary-to-decimal number)))
+
+(defun aoc-21-parse-operator-contents--length (len)
+  (let ((children '())
+        (target-pos (+ aoc-21-position len)))
+    (while (< aoc-21-position target-pos)
+      (push (aoc-21-parse-packet) children))
+    (reverse children)))
+
+(defun aoc-21-parse-operator-contents--count (ct)
+  (let ((children '()))
+    (dotimes (i ct)
+      (push (aoc-21-parse-packet) children))
+    (reverse children)))
+
+(defun aoc-21-parse-operator-contents ()
+  (let ((length-type (car (aoc-21-grab-bits 1))))
+    (if (= length-type 0)
+        (let ((length (aoc-21-read-bits 15)))
+          (aoc-21-parse-operator-contents--length length))
+      (let ((sub-ct (aoc-21-read-bits 11)))
+        (aoc-21-parse-operator-contents--count sub-ct)))))
+
+(defun aoc-21-parse-packet ()
+  (let ((version (aoc-21-parse-version))
+        (type (aoc-21-parse-packet-type)))
+    (cl-incf aoc-21-version-sum version)
+    (if (= type 4)
+        (aoc-21-parse-literal-packet)
+      (let ((children (aoc-21-parse-operator-contents)))
+        (cons type children)))))
+
+(defun aoc-21-eval-expr (expr)
+  (if (not (listp expr))
+      expr
+    (let ((op (car expr))
+          (args (seq-map #'aoc-21-eval-expr (cdr expr))))
+      (pcase op
+        (0 (apply '+ args))
+        (1 (apply '* args))
+        (2 (apply 'min args))
+        (3 (apply 'max args))
+        (5 (if (apply '> args) 1 0))
+        (6 (if (apply '< args) 1 0))
+        (7 (if (apply '= args) 1 0))))))
+
+(defun aoc-21-day-16 ()
+  (let ((puzzle-input (f-read "puzzle16.txt")))
+    (setq aoc-21-data (aoc-21-hex-to-binary puzzle-input))
+    (setq aoc-21-position 0)
+    (setq aoc-21-version-sum 0)
+    (let ((parse (aoc-21-parse-packet)))
+      (aocp (aoc-21-eval-expr parse)))))
+
 (provide 'aoc21)
 
 ;;; aoc21.el ends here
