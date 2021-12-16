@@ -811,6 +811,85 @@
                  counts)
         (- max min)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Day 14 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun aoc-21-traverse (board r c cost seen)
+  (if (or (< r 0) (< c 0) (> r 99) (> c 99) (> cost 390) (member (cons r c) seen))
+      999999
+    (let ((new-cost (+ cost (aaref board r c)))
+          (new-seen (cons (cons r c) seen)))
+      (if (and (= 99 r) (= 99 c))
+          (aocp new-cost)
+        (min (aoc-21-traverse board (1+ r) c new-cost new-seen)
+             (aoc-21-traverse board r (1+ c) new-cost new-seen)
+             (aoc-21-traverse board (1- r) c new-cost new-seen)
+             (aoc-21-traverse board r (1- c) new-cost new-seen))))))
+
+(defun aoc-21-day-14-1 ()
+  (let* ((data (aoc-grid (f-read "puzzle15.txt"))))
+    (aoc-21-traverse data 0 0 0 '())))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Day 15 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(require 'heap)
+
+(defun aoc-day-15-cmp-heap (a b)
+  (< (car a) (car b)))
+
+(defun aoc-day-15-next-item (heap visited)
+  (catch 'done
+    (while t
+      (let* ((next (heap-delete-root heap))
+             (row (cadr next))
+             (col (caddr next)))
+        (when (not (gethash (list row col) visited))
+          (throw 'done next))))))
+
+(defun aoc-day-15 ()
+  (let* ((size 100)
+         (data (aoc-input))
+         (weights (make-hash-table :test 'equal))
+         (distances (make-hash-table :test 'equal))
+         (visited (make-hash-table :test 'equal))
+         (heap (make-heap 'aoc-day-15-cmp-heap)))
+    (dotimes (r (* size 5))
+      (dotimes (c (* size 5))
+        (let* ((rinc (/ r size))
+               (cinc (/ c size))
+               (val (1+ (mod (1- (+ (aaref data (mod r size) (mod c size)) rinc cinc)) 9)))
+               (val (if (= val 0) 1 val)))
+          (puthash (list r c) val weights))))
+    (dotimes (r (* size 5))
+      (dotimes (c (* size 5))
+        (puthash (list r c) 9999999 distances)))
+    (puthash (list 0 0) 0 distances)
+    (heap-add heap '(0 0 0))
+    (catch 'done
+      (while t
+        (cl-incf debug)
+        (aocp debug)
+        (let* ((next (aoc-day-15-next-item heap visited))
+               (at-row (cadr next))
+               (at-col (caddr next))
+               (at-weight (car next)))
+          (puthash (list at-row at-col) at-weight visited)
+          (when (and (= at-row (1- (* size 5))) (= at-col (1- (* 5 size))))
+            (throw 'done (aocp at-weight)))
+          (dolist (diff '((-1 0) (1 0) (0 -1) (0 1)))
+            (pcase-let* ((`(,dr ,dc) diff)
+                         (row (+ at-row dr))
+                         (col (+ at-col dc)))
+              (let ((d (gethash (list row col) distances))
+                    (w (gethash (list row col) weights)))
+                (when (and d (not (gethash (list row col) visited)))
+                  (heap-add heap (list (min d (+ w at-weight)) row col))
+                  (puthash (list row col) (min d (+ w at-weight)) distances))))))))))
+
 (provide 'aoc21)
 
 ;;; aoc21.el ends here
