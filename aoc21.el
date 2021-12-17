@@ -996,6 +996,48 @@
     (let ((parse (aoc-21-parse-packet)))
       (aocp (aoc-21-eval-expr parse)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 17 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun aoc-21-day-17-in-range (x y)
+  (and (<= 206 x 250)
+       (<= -105 y -57)))
+
+(defun aoc-21-day-17-overshot-p (x y)
+  (or (> x 250)
+      (< y -105)))
+
+(defun aoc-21-day-17-simulate-shot (vx vy)
+  (let ((x 0)
+        (y 0)
+        (max-height 0))
+    (while (not (or (aoc-21-day-17-in-range x y)
+                    (aoc-21-day-17-overshot-p x y)))
+      (setq x (+ x vx))
+      (setq y (+ y vy))
+      (when (> vx 0)
+        (setq vx (- vx 1)))
+      (setq vy (- vy 1))
+      (when (> y max-height)
+        (setq max-height y)))
+    (if (aoc-21-day-17-in-range x y)
+        (aocp max-height)
+      nil)))
+
+(defun aoc-21-day-17-day-1 ()
+  (aocp (cl-loop for vx from 19 to 22
+                 maximize (cl-loop for vy from 0 to 1000
+                                   maximize (aoc-21-day-17-simulate-shot vx vy)))))
+
+(defun aoc-21-day-17-day-2 ()
+  (let ((ct 0))
+    (aocp (cl-loop for vx from 10 to 250
+                   do (cl-loop for vy from 105 to 1000
+                               do (when (aoc-21-day-17-simulate-shot vx vy)
+                                    (cl-incf ct)))))
+    (aocp ct)))
+
 (provide 'aoc21)
 
 ;;; aoc21.el ends here
