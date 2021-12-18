@@ -1038,6 +1038,124 @@
                                     (cl-incf ct)))))
     (aocp ct)))
 
+;;;;;; day 18
+
+(defun aoc21-day-18-explode (n pos)
+  (with-current-buffer (get-buffer-create "*aoc-test*")
+    (erase-buffer)
+    (insert n)
+    (goto-char pos)
+    (search-forward-regexp "\\([[:digit:]]+\\)")
+    (let ((l (read (match-string 0))))
+      (search-forward-regexp "\\([[:digit:]]+\\)")
+      (let ((r (read (match-string 0))))
+        (goto-char pos)
+        (while (not (looking-at "]"))
+          (delete-forward-char 1))
+        (delete-forward-char 1)
+        (insert "0")
+        (when (search-forward-regexp "\\([[:digit:]]+\\)" nil t)
+          (let ((n (read (match-string 0))))
+            (while (looking-back "[[:digit:]]")
+              (delete-forward-char -1))
+            (insert (format "%d" (+ n r)))))
+        (goto-char pos)
+        
+        (when (search-backward-regexp "\\([[:digit:]]+\\)" nil t)
+          (let ((n (thing-at-point 'number)))
+            (while (looking-at "[[:digit:]]")
+              (delete-forward-char 1))
+            (while (looking-back "[[:digit:]]")
+              (delete-forward-char -1))
+            (insert (format "%d" (+ n l)))))))
+    (buffer-string)))
+
+(defun aoc21-day-18-scan-explodes (n)
+  (with-temp-buffer
+    (insert n)
+    (goto-char (point-min))
+    (catch 'done
+      (let ((depth 0))
+        (while (not (eobp))
+          (when (looking-at "\\[")
+            (setq depth (1+ depth)))
+          (when (looking-at "\\]")
+            (setq depth (1- depth)))
+          (when (= depth 5)
+            (throw 'done
+                   (aoc21-day-18-explode n (point))))
+          (forward-char 1)))
+      nil)))
+
+(defun aoc21-day-18-scan-split (n)
+  (with-temp-buffer
+    (insert n)
+    (goto-char (point-min))
+    (when (search-forward-regexp "\\([[:digit:]][[:digit:]]+\\)" nil t)
+      (let ((number (read (match-string 0))))
+        (while (looking-back "[[:digit:]]")
+          (delete-forward-char -1))
+        (insert (format "[%d,%d]" (/ number 2)
+                        (+ (/ number 2)
+                           (if (oddp number) 1 0))))
+        (buffer-string)))))
+
+(defun aoc21-day-18-add (n1 n2)
+  (let ((s (concat "[" n1 "," n2 "]"))
+        (cont t))
+    (aocp s)
+    (while cont
+      (setq cont nil)
+      (let ((expl (aoc21-day-18-scan-explodes s)))
+        (when expl
+          (setq cont t)
+          (setq s expl)
+          (aocp expl))
+        (when (not expl)
+          (let ((split (aoc21-day-18-scan-split s)))
+            (when split
+              (setq cont t)
+              (setq s split)
+              (aocp split))))))
+    s))
+
+(defun aoc21-day-18-magnitude* (x)
+  (if (consp x)
+      (let ((l (aoc21-day-18-magnitude* (car x)))
+            (r (aoc21-day-18-magnitude* (cdr x))))
+        (if (not r)
+            l
+          (+ (* 3 l) (* 2 r))))
+    x))
+
+(defun aoc21-day-18-magnitude (s)
+  (with-temp-buffer
+    (insert s)
+    (replace-string "[" "(" nil (point-min) (point-max))
+    (replace-string "]" ")" nil (point-min) (point-max))
+    (replace-string "," " . " nil (point-min) (point-max))
+    (aoc21-day-18-magnitude*
+     (read (buffer-string)))))
+
+(defun aoc21-day-18-part-1 ()
+  (let ((lines (aoc-lines (f-read "puzzle18.txt"))))
+    (let ((s (car lines)))
+      (dolist (line (cdr lines))
+        (setq s (aoc21-day-18-add s line))
+        (aocp s))
+      (aoc21-day-18-magnitude s))))
+
+(defun aoc21-day-18-part-2 ()
+  (let ((lines (aoc-lines (f-read "puzzle18.txt")))
+        (max 0))
+    (dolist (l1 lines)
+      (dolist (l2 lines)
+        (when (not (equal l1 l2))
+          (let ((magnitude (aoc21-day-18-magnitude (aoc21-day-18-add l1 l2))))
+            (when (> magnitude max)
+              (setq max magnitude))))))
+    max))
+
 (provide 'aoc21)
 
 ;;; aoc21.el ends here
