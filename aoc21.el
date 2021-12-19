@@ -1038,7 +1038,9 @@
                                     (cl-incf ct)))))
     (aocp ct)))
 
-;;;;;; day 18
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; day 18 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun aoc21-day-18-explode (n pos)
   (with-current-buffer (get-buffer-create "*aoc-test*")
@@ -1155,6 +1157,145 @@
             (when (> magnitude max)
               (setq max magnitude))))))
     max))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 19 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(defconst aoc21-axis-of-rotation
+  '((x y z)   (-x -y z) (-y x z) (y -x z)
+    (-z y x)  (z -y x)  (y z x) (-y -z x)
+    (-x y -z) (x -y -z) (y x -z) (-y -x z)
+    (z y -x)  (-z -y -x) (-y z -x) (y -z -x)
+    (x z -y)  (-x -z -y) (-z x -y) (z -x -y)
+    (x -z y)  (-x z y) (z x y) (-z -x y)))
+
+(defun aoc21-eval-axis (axis x y z)
+  (mapcar
+   (lambda (sym)
+     (cond
+      ((eql sym 'x) x)
+      ((eql sym '-x) (- x))
+      ((eql sym 'y) y)
+      ((eql sym '-y) (- y))
+      ((eql sym 'z) z)
+      ((eql sym '-z) (- z))))
+   axis))
+
+(defun aoc21-permutate-points (axis pts)
+  (seq-map (lambda (pt)
+             (let ((x (car pt))
+                   (y (cadr pt))
+                   (z (caddr pt)))
+               (aoc21-eval-axis axis x y z)))
+           pts))
+
+(defun aoc21-diff-pts (a b)
+  (let ((x1 (car a))
+        (x2 (car b))
+        (y1 (cadr a))
+        (y2 (cadr b))
+        (z1 (caddr a))
+        (z2 (caddr b)))
+    (list (- x1 x2)
+          (- y1 y2)
+          (- z1 z2))))
+
+(defun aoc21-translate-point (pt offset)
+  (pcase-let ((`(,dx ,dy ,dz) offset))
+    (pcase-let ((`(,x ,y ,z) pt))
+      (list (+ x dx)
+            (+ y dy)
+            (+ z dz)))))
+
+(defun aoc21-consolidate-points (pts1 pts2)
+  (catch 'done 
+    (dolist (axis aoc21-axis-of-rotation)
+      (let ((pts2v (aoc21-permutate-points axis pts2)))
+        (dolist (pt2 pts2v) ; for each point in the variant
+          (dolist (pt1 pts1) ; for each point in pts 1
+            (let* ((diff (aoc21-diff-pts pt1 pt2))
+                   (pts2voff (seq-map (lambda (pt) (aoc21-translate-point pt diff)) pts2v))
+                   (intersection (cl-intersection pts1 pts2voff :test 'equal)))
+              (when (>= (length intersection) 12)
+                (throw 'done (list axis diff))))))))))
+
+(defun aoc21-day-19-parse-input ()
+  (aoc-groups-of
+   (f-read "puzzle19.txt")
+   (lambda (group)
+     (let* ((lines (aoc-lines group))
+            (first-line (car lines))
+            (rest-lines (cdr lines)))
+       (cons
+        (car (aoc-ints first-line))
+        (seq-map (lambda (nums) (seq-map #'read (split-string nums ","))) rest-lines))))))
+
+(defun aoc21-day-19-find-translations ()
+  (let ((puzzle (aoc21-day-19-parse-input))
+        (translations '()))
+    (dolist (scanner-1 puzzle)
+      (let ((idx-1 (car scanner-1))
+            (pts-1 (cdr scanner-1)))
+        (dolist (scanner-2 puzzle)
+          (let ((idx-2 (car scanner-2))
+                (pts-2 (cdr scanner-2)))
+            (when (not (> idx-2 idx-1))
+              (let ((join (aoc21-consolidate-points pts-1 pts-2)))
+                (when join
+                  (setq translations (cons (list idx-1 idx-2 join) translations)))))))))))
+
+(defconst aoc21-translations (aoc21-day-19-find-translations))
+
+(defun aoc21-day-19-input-hash (&optional part-2)
+  (let ((puzzle (aoc21-day-19-parse-input))
+        (hash (make-hash-table :test 'equal)))
+    (dolist (p puzzle)
+      (let ((idx (car p))
+            (pts (cdr p)))
+        (puthash idx pts hash)))
+    (when part-2
+      (dotimes (idx 34)
+        (puthash idx (cons '(0.25 0.25 0.25) (gethash idx hash)) hash)))
+    hash))
+
+(defconst aoc21-combined-data (aoc21-day-19-part-1))
+
+(defun aoc21-day-19-part-1 (&optional part-2)
+  (let ((data (aoc21-day-19-input-hash)))
+    (dotimes (_ 30)
+      (dolist (diff aoc21-translations)
+        (pcase-let ((`(,idx-a ,idx-b (,axis ,diff)) diff))
+          (let* ((pts-a (gethash idx-a data))
+                 (pts-b (gethash idx-b data))
+                 (pts-b-rotate (aoc21-permutate-points axis pts-b))
+                 (pts-b-moved (seq-map (lambda (pt) (aoc21-translate-point pt diff)) pts-b-rotate))
+                 (union-pts (cl-union pts-a pts-b-moved :test 'equal)))
+            (puthash idx-a union-pts data)))))
+    data))
+
+(defconst aoc21-day-19-data (aoc21-day-19-part-1 t))
+
+(defun aoc21-day-19-part-2 ()
+  (let ((max 0)
+      (scanner-pts (let ((pts (gethash 0 aoc21-day-19-data)))
+                     (seq-map (lambda (pt) (seq-map #'round pt))
+                              (seq-filter (lambda (pt) (not (integerp (car pt)))) pts)))))
+  (dolist (pt1 scanner-pts)
+    (dolist (pt2 scanner-pts)
+      (when (not (equal pt1 pt2))
+        (let ((m-dist (aoc21-manhattan-dist pt1 pt2)))
+          (when (> m-dist max)
+            (setq max m-dist))))))
+  max))
+
+(defun aoc21-manhattan-dist (pt1 pt2)
+  (pcase-let ((`(,x1 ,y1 ,z1) pt1))
+    (pcase-let ((`(,x2 ,y2 ,z2) pt2))
+      (+ (abs (- x1 x2))
+         (abs (- y1 y2))
+         (abs (- z1 z2))))))
 
 (provide 'aoc21)
 
