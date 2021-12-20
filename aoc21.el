@@ -1297,6 +1297,58 @@
          (abs (- y1 y2))
          (abs (- z1 z2))))))
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 20 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun aoc21-make-hash-table (data)
+  (let ((hash (make-hash-table :test 'equal))
+        (lines (vconcat (split-string data "\n"))))
+    (dotimes (r (length lines))
+      (dotimes (c (length (aref lines 0)))
+        (let* ((char (aref (aref lines r) c))
+               (bit (if (eql char ?.)
+                        0
+                      1)))
+          (puthash (list r c) bit hash))))
+    hash))
+
+(defun aoc21-bit-at-point (data enhance-idx n r c)
+  (let ((oob (if (evenp n) 0 1))
+        (bdigit "#b"))
+    (cl-loop for dr from -1 to 1
+             do (cl-loop for dc from -1 to 1
+                         do (setq bdigit (concat bdigit (format "%d" (gethash (list (+ r dr) (+ c dc)) data oob))))))
+    (let ((char (aref enhance-idx (read bdigit))))
+      (if (eql char ?#)
+          1
+        0))))
+
+(defun aoc21-day-20-step (data enhance-idx n bound)
+  (let ((start (- bound))
+        (end (+ 100 bound)))
+    (let* ((new-data (make-hash-table :test 'equal)))
+      (cl-loop for r from start to end
+               do (cl-loop for c from start to end
+                           do (puthash (list r c) (aoc21-bit-at-point data enhance-idx n r c) new-data)))
+      new-data)))
+
+(defun aoc21-day-20 (&optional part-2)
+  (let* ((groups (aoc-groups (f-read "puzzle20.txt")))
+         (enhance-idx (car groups))
+         (data (aoc21-make-hash-table (cadr groups))))
+    (dotimes (n (if part-2 50 2))
+      (setq data (aoc21-day-20-step data enhance-idx n (if part-2 100 10))))
+    (let ((ct 0))
+      (maphash
+       (lambda (k v)
+         (when (= 1 v)
+           (cl-incf ct)))
+       data)
+      ct)))
+
 (provide 'aoc21)
 
 ;;; aoc21.el ends here
