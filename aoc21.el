@@ -1349,6 +1349,80 @@
        data)
       ct)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 21 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun aoc21-day-21-part-1 ()
+  (let* ((dice 1)
+         (turn 0)
+         (roll-ct 0)
+         (p1-score 0)
+         (p2-score 0)
+         (p1-pos 7)
+         (p2-pos 5))
+    (cl-labels ((roll-die () (prog1 dice
+                               (setq dice (1+ (mod dice 100)))
+                               (cl-incf roll-ct))))
+     (while (and (< p1-score 1000)
+                 (< p2-score 1000))
+       (let ((die-sum (+ (aocp (roll-die)) (aocp (roll-die)) (aocp (roll-die))))
+             (player (mod turn 2)))
+         (if (= 0 player)
+             (progn
+               (setq p1-pos (1+ (mod (1- (+ p1-pos die-sum)) 10)))
+               (setq p1-score (+ p1-score p1-pos)))
+           (setq p2-pos (1+ (mod (1- (+ p2-pos die-sum)) 10)))
+           (setq p2-score (+ p2-score p2-pos)))
+         (cl-incf turn)))
+     (let ((loser-score (if (> p1-score 1000) p2-score p1-score)))
+       (aocp p1-score)
+       (aocp p2-score)
+       (aocp roll-ct)
+       (aocp (* loser-score roll-ct))))))
+
+(defvar aoc21-day-21-win-cts nil)
+(defvar aoc21-day-21-memo nil)
+
+(defun aoc21-day-21-move-piece (pos ct)
+  (1+ (mod (1- (+ pos ct)) 10)))
+
+(defun aoc21-day-21-part-2* (p1-pos p2-pos p1-score p2-score turn universe-ct)
+  (cond
+   ((>= p1-score 21)
+    (setcar aoc21-day-21-win-cts (+ (car aoc21-day-21-win-cts) universe-ct))
+    universe-ct)
+   ((>= p2-score 21)
+    (setcdr aoc21-day-21-win-cts (+ (cdr aoc21-day-21-win-cts) universe-ct))
+    universe-ct)
+   (t
+    (dolist (ct '((3 . 1) (4 . 3) (5 . 6) (6 . 7) (7 . 6) (8 . 3) (9 . 1)))
+      (let ((sum (car ct))
+            (times (cdr ct)))
+        (if (= 0 turn)
+            (let ((new-p1-pos (aoc21-day-21-move-piece p1-pos sum)))
+              (aoc21-day-21-part-2*
+               new-p1-pos
+               p2-pos
+               (+ p1-score new-p1-pos)
+               p2-score
+               (mod (1+ turn) 2)
+               (* universe-ct times)))
+          (let ((new-p2-pos (aoc21-day-21-move-piece p2-pos sum)))
+            (aoc21-day-21-part-2*
+             p1-pos
+             new-p2-pos
+             p1-score
+             (+ p2-score new-p2-pos)
+             (mod (1+ turn) 2)
+             (* universe-ct times)))))))))
+
+(defun aoc21-day-21-part-2 ()
+  (setq aoc21-day-21-win-cts '(0 . 0))
+  (aoc21-day-21-part-2* 7 5 0 0 0 1)
+  (max (car aoc21-day-21-win-cts) (cdr aoc21-day-21-win-cts)))
+
+
 (provide 'aoc21)
 
 ;;; aoc21.el ends here
