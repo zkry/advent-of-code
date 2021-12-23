@@ -1422,6 +1422,256 @@
   (aoc21-day-21-part-2* 7 5 0 0 0 1)
   (max (car aoc21-day-21-win-cts) (cdr aoc21-day-21-win-cts)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 22 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun aoc21-day-22-parse-input ()
+  (aoc-parsed-lines (f-read "puzzle22.txt")
+                    "\\([[:alpha:]]+\\) x=\\([-[:digit:]]+\\)\\.\\.\\([-[:digit:]]+\\),y=\\([-[:digit:]]+\\)\\.\\.\\([-[:digit:]]+\\),z=\\([-[:digit:]]+\\)\\.\\.\\([-[:digit:]]+\\)"
+                    #'read #'read #'read #'read #'read #'read #'read))
+
+(defun aoc21-day-22-point-in-box-p (data x y z)
+  (pcase-let* ((`(,type ,x1 ,x2 ,y1 ,y2 ,z1 ,z2) data))
+    (and (<= x1 x x2)
+         (<= y1 y y2)
+         (<= z1 z z2))))
+
+(defun aoc21-day-22-part-1 ()
+  (let ((input (reverse (aoc21-day-22-parse-input))))
+    (let ((ct 0))
+      (cl-loop for x from -50 to 50
+               do (cl-loop for y from -50 to 50
+                           do (cl-loop for z from -50 to 50
+                                       do (catch 'done
+                                            (dolist (step input)
+                                              (when (aoc21-day-22-point-in-box-p step x y z)
+                                                (when (eql 'on (car step))
+                                                  (cl-incf ct))
+                                                (throw 'done nil)))))))
+      (aocp ct))))
+
+(defun aoc21-day-22-in-box-p (x y z box)
+  (pcase-let ((`(,bottom-type ,bx1 ,bx2 ,by1 ,by2 ,bz1 ,bz2) box))
+    (and (>= bx1 x bx2)
+         (>= by1 y by2)
+         (>= bz1 z bz2))))
+
+(defun aoc21-day-22-intersect-boxes (bottom-box top-box)
+  (pcase-let ((`(,bottom-type ,bx1 ,bx2 ,by1 ,by2 ,bz1 ,bz2) bottom-box)
+              (`(,top-type ,tx1 ,tx2 ,ty1 ,ty2 ,tz1 ,tz2) top-box))
+    (let ((xss (vconcat (sort (list bx1 bx2 tx1 tx2) #'<)))
+          (yss (vconcat (sort (list by1 by2 ty1 ty2) #'<)))
+          (zss (vconcat (sort (list bz1 bz2 tz1 tz2) #'<)))
+          (boxes '()))
+      (dotimes (x 3)
+        (dotimes (y 3)
+          (dotimes (z 3)
+            (when (and ))
+            (push (list (aref xss x)
+                        (aref yss y)
+                        (aref zss z)
+                        (aref xss (1+ x))
+                        (aref yss (1+ y))
+                        (aref zss (1+ z)))
+                  boxes))))
+      boxes)))
+
+(length
+ (aoc21-day-22-intersect-boxes
+  '(on 0 10 0 10 0 10)
+  '(on 5 15 5 15 5 15)))
+
+(let ((n 1000)
+      (ct 0))
+ (dotimes (x n)
+   (dotimes (y n)
+     (dotimes (z n)
+       (cl-incf ct))))
+ ct)
+
+(defun aoc21-day-22-on-4 (input x y z)
+  (catch 'done
+    (dolist (in input)
+      (pcase-let ((`(,type ,x1 ,x2 ,y1 ,y2 ,z1 ,z2) in))
+        (when (and (<= x1 x x2)
+                   (<= y1 y y2)
+                   (<= z1 z z2))
+          (throw 'done (eql 'on type)))))
+    nil))
+
+(defun aoc21-day-22-box-intersect (bottom-box top-box)
+  (pcase-let ((`(,top-type ,top-x1 ,top-x2 ,top-y1 ,top-y2 ,top-z1 ,top-z2) top-box)
+              (`(,bottom-type ,bottom-x1 ,bottom-x2 ,bottom-y1 ,bottom-y2 ,bottom-z1 ,bottom-z2) bottom-box))
+    (let ((sub-boxes '())
+          (xss (vconcat (sort (list top-x1 top-x2 bottom-x1 bottom-x2) #'<)))
+          (yss (vconcat (sort (list top-y1 top-y2 bottom-y1 bottom-y2) #'<)))
+          (zss (vconcat (sort (list top-z1 top-z2 bottom-z1 bottom-z2) #'<))))
+      (dotimes (xidx 3)
+        (dotimes (yidx 3)
+          (dotimes (zidx 3)
+            (let ((at-x (aref xss xidx))
+                  (next-x (aref xss (1+ xidx)))
+                  (at-y (aref yss yidx))
+                  (next-y (aref yss (1+ yidx)))
+                  (at-z (aref zss zidx))
+                  (next-z (aref zss (1+ zidx))))
+              (push (list at-x at-y at-z at-x at-y at-z) sub-boxes)
+              (push (list (1+ at-x) at-y at-z next-x at-y at-z) sub-boxes)
+              (push (list at-x (1+ at-y) at-z at-x next-y at-z) sub-boxes)
+              (push (list at-x at-y (1+ at-z) at-x at-y next-z) sub-boxes)
+
+              (push (list (1+ at-x) (1+ at-y) at-z next-x next-y at-z) sub-boxes)
+              (push (list (1+ at-x) at-y (1+ at-z) next-x at-y next-z) sub-boxes)
+              (push (list at-x (1+ at-y) (1+ at-z) at-x next-y next-z) sub-boxes)
+              
+              (push (list (1+ at-x) (1+ at-y) (1+ at-z) next-x next-y next-z) sub-boxes)))))
+      (seq-filter
+       (lambda (box)
+         (pcase-let ((`(,top-type ,x1 ,x2 ,y1 ,y2 ,z1 ,z2) top-box))
+           (and
+            (not
+             (and (<= top-x1 x1 top-x2)
+                  (<= top-y1 y1 top-y2)
+                  (<= top-z1 z1 top-z2)))
+            (and (<= bottom-x1 x1 bottom-x2)
+                 (<= bottom-y1 y1 bottom-y2)
+                 (<= bottom-z1 z1 bottom-z2)))))
+       sub-boxes))))
+
+(defun aoc21-day-22-part-2 ()
+  (catch 'done
+    (let* ((all-input (reverse (aoc21-day-22-parse-input)))
+           (input (vconcat (seq-map #'vconcat (reverse (aoc21-day-22-parse-input)))))
+           (input-length (length input))
+           (ct 0)
+           (xss (vconcat (sort (append (seq-map (lambda (x) (nth 1 x)) all-input) (seq-map (lambda (x) (nth 2 x)) all-input)) #'<)))
+           (yss (vconcat (sort (append (seq-map (lambda (x) (nth 3 x)) all-input) (seq-map (lambda (x) (nth 4 x)) all-input)) #'<)))
+           (zss (vconcat (sort (append (seq-map (lambda (x) (nth 5 x)) all-input) (seq-map (lambda (x) (nth 6 x)) all-input)) #'<))))
+      (dotimes (xidx (1- (length xss)))
+        (dotimes (yidx (1- (length yss)))
+          (dotimes (zidx (1- (length zss)))
+            (let ((x (aref xss xidx))
+                  (xn (aref xss (1+ xidx)))
+                  (y (aref yss yidx))
+                  (yn (aref yss (1+ yidx)))
+                  (z (aref zss zidx))
+                  (zn (aref zss (1+ zidx))))
+              (when (catch 'found
+                      (dotimes (i input-length)
+                        (when (and (<= (aref (aref input i) 1) x (aref (aref input i) 2))
+                                   (<= (aref (aref input i) 3) y (aref (aref input i) 4))
+                                   (<= (aref (aref input i) 5) z (aref (aref input i) 6)))
+                          (throw 'found (aref (aref input i) 0))))
+                      nil)
+                (cl-incf ct (* (- xn x) (- yn y) (- zn z))))
+              ;; (when (aoc21-day-22-on-4 all-input x y z)
+              ;;   (cl-incf ct (* (- xn x) (- yn y) (- zn z))))
+              )
+            )
+          (throw 'done nil)
+          )
+        ))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 23 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defvar aoc21-day-23-history '())
+(defvar aoc21-day-23-overlay nil)
+(defvar aoc21-day-23-score 0)
+(defvar aoc21-day-23-move-start nil)
+
+(defun aoc21-day-23-display-score ()
+  (save-excursion 
+    (goto-char (point-max))
+    (insert (format "\nSCORE: %d" aoc21-day-23-score))))
+
+(defun aoc21-day-23-move--to ()
+  (unless (eql (char-after (point)) ?.)
+    (error "can't move to %c" (char-after (point)) ))
+  (unless aoc21-day-23-move-start
+    (error "no start point"))
+  (let* ((at-char (save-excursion (goto-char aoc21-day-23-move-start) (char-after (point))))
+         (cost (cdr (assoc at-char '((?A . 1) (?B . 10) (?C . 100) (?D . 1000)))))
+         (at-col (current-column))
+         (at-line (line-number-at-pos))
+         (from-col (save-excursion (goto-char aoc21-day-23-move-start) (current-column)))
+         (from-line (save-excursion (goto-char aoc21-day-23-move-start) (line-number-at-pos)))
+         (dist (if (or (= at-line 2) (= from-line 2))
+                   (+ (abs (- at-col from-col)) (abs (- at-line from-line)))
+                 (+ (- from-line 2)
+                    (+ (abs (- at-col from-col)) (abs (- at-line 2))))))
+         (total-cost (* dist cost)))
+    (cl-incf aoc21-day-23-score total-cost)
+    (save-excursion
+      (goto-char aoc21-day-23-move-start)
+      (delete-forward-char 1)
+      (insert "."))
+    (delete-forward-char 1)
+    (insert at-char)
+    (setq aoc21-day-23-move-start nil)
+    (when aoc21-day-23-overlay
+      (delete-overlay aoc21-day-23-overlay))
+    (aoc21-day-23-display-score)))
+
+(defun aoc21-day-23-move--from ()
+  (unless (memq (char-after (point)) '(?A ?B ?C ?D))
+    (error "cant move %c" (char-after (point))))
+  (setq aoc21-day-23-move-start (point))
+  (let ((ov (make-overlay (point) (1+ (point)))))
+    (overlay-put ov 'face 'hl-todo)
+    (setq aoc21-day-23-overlay ov)))
+
+(defun aoc21-day-23-move ()
+  (interactive)
+  (let ((inhibit-read-only t))
+    (if aoc21-day-23-move-start
+        (aoc21-day-23-move--to)
+      (aoc21-day-23-move--from))))
+
+(defun aoc21-day-23-quit-move ()
+  (interactive)
+  (setq aoc21-day-23-move-start nil)
+  (when aoc21-day-23-overlay
+      (delete-overlay aoc21-day-23-overlay)))
+
+(defconst aoc21-day-23-mode-map
+  (let ((map (make-sparse-keymap)))
+    (prog1 map
+      (suppress-keymap map)
+      (define-key map "m" #'aoc21-day-23-move)
+      (define-key map "q" #'aoc21-day-23-quit-move)
+      (define-key map "r" #'aoc21-day-23-setup-board))))
+
+(defun aoc21-day-23-mode ()
+  (interactive)
+  (kill-all-local-variables)
+  (use-local-map aoc21-day-23-mode-map)
+  (setq aoc21-day-23-history '())
+  (setq aoc21-day-23-move-start nil)
+  (setq aoc21-day-23-score 0)
+  (setq mode-name "aoc21-23"
+        truncate-lines t
+        buffer-read-only t))
+
+(defun aoc21-day-23-setup-board ()
+  (interactive)
+  (let ((buf (get-buffer-create "*aoc21-23*")))
+    (let ((inhibit-read-only t))
+     (with-current-buffer buf
+       (erase-buffer)
+       (insert "#############\n")
+       (insert "#...........#\n")
+       (insert "###D#A#C#D###\n")
+       (insert "  #D#C#B#A#  \n")
+       (insert "  #D#B#A#C#  \n")
+       (insert "  #C#A#B#B#  \n")
+       (insert "  #########  \n")
+       (aoc21-day-23-mode)
+       (text-scale-adjust 5))
+     (switch-to-buffer buf)))
+  (goto-char (point-min)))
 
 (provide 'aoc21)
 
