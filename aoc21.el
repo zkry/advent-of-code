@@ -1673,6 +1673,88 @@
      (switch-to-buffer buf)))
   (goto-char (point-min)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 24 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun aoc21-day-24-run-program (program n)
+  (let ((num-str (format "%d" n))
+        (num-idx 0)
+        (w 0)
+        (x 0)
+        (y 0)
+        (z 0)
+        (eql-ct 0))
+    (dolist (stmt program)
+      (pcase stmt
+        (`(inp ,a)
+         (set a (- (aref num-str num-idx) 48))
+         (cl-incf num-idx))
+        (`(add ,a ,b)
+         (set a (+ (symbol-value a) (if (numberp b) b (symbol-value b)))))
+        (`(mul ,a ,b)
+         (set a (* (symbol-value a) (if (numberp b) b (symbol-value b)))))
+        (`(div ,a ,b)
+         (set a (/ (symbol-value a) (if (numberp b) b (symbol-value b)))))
+        (`(mod ,a ,b)
+         (set a (mod (symbol-value a) (if (numberp b) b (symbol-value b)))))
+        (`(eql ,a ,b)
+         (set a (if (= (symbol-value a) (if (numberp b) b (symbol-value b))) 1 0))
+         (when (and (eql a 'x) (eql b 'w))
+           (if (= (symbol-value a) 1)
+               (progn
+                 (cl-incf eql-ct)
+                 ;;(message "%d x is equal (%d)" n num-idx)
+                 (when (= num-idx 14)
+                   ;;(message "??? %d" n)
+                   ))
+             ;;(message "%d x is not equal (%d)" n num-idx)
+             )))))
+    z))
+
+(defun aoc21-digit-p (n)
+  (<= 1 n 9))
+
+(defun aoc21-combine-nums (&rest nums)
+  (let ((pow 1)
+        (sum 0))
+    (dolist (n (reverse nums))
+      (cl-incf sum (* n pow))
+      (setq pow (* 10 pow)))
+    sum))
+
+(defmacro aoc21-comment (&rest body)
+  nil)
+
+(aoc21-comment
+ (dotimes (a 9)
+   (dotimes (b 9)
+     (dotimes (c 9)
+       (dotimes (d 9)
+         (dotimes (e 9)
+           (dotimes (h 9)
+             (dotimes (j 9)
+               (let* ((a (1+ a))
+                      (b (1+ b))
+                      (c (1+ c))
+                      (d (1+ d))
+                      (e (1+ e))
+                      (f (- e 2))
+                      (g (+ d 7))
+                      (h (1+ h))
+                      (i (+ h 4))
+                      (j (1+ j))
+                      (k (- j 6))
+                      (l (+ c 5))
+                      (m (- b 7))
+                      (n a))
+                 (when (seq-every-p #'aoc21-digit-p (list a b c d e f g h i j k l m n))
+                   (let ((res (aoc21-day-24-run-program aoc21-program
+                                                        (aoc21-combine-nums a b c d e f g h i j k l m n))))
+                     (when (= res 0)
+                       (error "answer is %d%d%d%d%d%d%d%d%d%d%d%d%d -> %d" a b c d e f g h i j k l m n res)
+                       ))))))))))))
+
 (provide 'aoc21)
 
 ;;; aoc21.el ends here
