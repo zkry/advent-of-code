@@ -1577,6 +1577,10 @@
 ;;; Day 23 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; the following code doen't solve the problem put provides a mode to
+;; quickly play the puzzle.  I sovled part 2 manually after about 100
+;; or so tries using the following mode.
+
 (defvar aoc21-day-23-history '())
 (defvar aoc21-day-23-overlay nil)
 (defvar aoc21-day-23-score 0)
@@ -1727,6 +1731,9 @@
   nil)
 
 (aoc21-comment
+ ;; NOTE: Missing from this repository is the work on paper and REPL
+ ;;       to understand the machine, what follows are the magic
+ ;;       numbers to determine the code.
  (dotimes (a 9)
    (dotimes (b 9)
      (dotimes (c 9)
@@ -1752,8 +1759,94 @@
                    (let ((res (aoc21-day-24-run-program aoc21-program
                                                         (aoc21-combine-nums a b c d e f g h i j k l m n))))
                      (when (= res 0)
-                       (error "answer is %d%d%d%d%d%d%d%d%d%d%d%d%d -> %d" a b c d e f g h i j k l m n res)
-                       ))))))))))))
+                       (error "answer is %d%d%d%d%d%d%d%d%d%d%d%d%d -> %d" a b c d e f g h i j k l m n res)))))))))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 25 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defconst aoc21-day-25-example "...>...
+.......
+......>
+v.....>
+......>
+.......
+..vvv..")
+
+
+(defvar aoc21-day-25-row-ct nil)
+(defvar aoc21-day-25-col-ct nil)
+
+(defun aoc21-day-25-to-idx (row col)
+  (+ (* row aoc21-day-25-col-ct) col))
+
+(defun aoc21-day-25-idx-to-row (idx)
+  (/ idx aoc21-day-25-col-ct))
+(defun aoc21-day-25-idx-to-col (idx)
+  (mod idx aoc21-day-25-col-ct))
+
+(defun aoc21-day-25-new-data ()
+  (make-vector (* aoc21-day-25-row-ct aoc21-day-25-col-ct) ?.))
+
+(defun aoc21-day-25-puzzle-data (lines)
+  (let ((data (aoc21-day-25-new-data)))
+    (dotimes (r aoc21-day-25-row-ct)
+      (dotimes (c aoc21-day-25-col-ct)
+        (setf (aref data (aoc21-day-25-to-idx r c)) (aref (nth r lines) c))))
+    data))
+
+(defun aoc21-day-25-print-board (data)
+  (with-current-buffer "*aoc-output*"
+    (goto-char (point-min))
+    (insert "\n")
+    (dotimes (r aoc21-day-25-row-ct)
+      (dotimes (c aoc21-day-25-col-ct)
+        (insert (aref data (aoc21-day-25-to-idx r c))))
+      (insert "\n"))
+    (insert "\n\n")))
+
+(defun aoc21-day-25-solution ()
+  (let* ((lines (aoc-lines (f-read "puzzle25.txt")))
+         (aoc21-day-25-row-ct (length lines))
+         (aoc21-day-25-col-ct (length (car lines)))
+         (data (aoc21-day-25-puzzle-data lines))
+         (round 0))
+    (catch 'done
+      (while t
+        (cl-incf round)
+        (let ((changed nil)
+              (new-data (aoc21-day-25-new-data)))
+          (cl-loop for c across data
+                   for idx from 0
+                   when (= ?> c)
+                   do (let* ((row (aoc21-day-25-idx-to-row idx))
+                             (col (aoc21-day-25-idx-to-col idx))
+                             (next-col (mod (+ col 1) aoc21-day-25-col-ct))
+                             (next-idx (aoc21-day-25-to-idx row next-col)))
+                        (if (eql (aref data next-idx) ?.)
+                            (progn
+                              (setf (aref new-data next-idx) ?>)
+                              (setq changed t))
+                          (setf (aref new-data idx) ?>))))
+          (cl-loop for c across data
+                   for idx from 0
+                   when (= ?v c)
+                   do (let* ((row (aoc21-day-25-idx-to-row idx))
+                             (col (aoc21-day-25-idx-to-col idx))
+                             (next-row (mod (+ row 1) aoc21-day-25-row-ct))
+                             (next-idx (aoc21-day-25-to-idx next-row col)))
+                        (if (and (eql (aref new-data next-idx) ?.)
+                                 (not (eql (aref data next-idx) ?v)))
+                            (progn
+                              (setf (aref new-data next-idx) ?v)
+                              (setq changed t))
+                          (setf (aref new-data idx) ?v))))
+          (setq data new-data)
+          (when (not changed)
+            (throw 'done nil)))))
+    round))
+
+(aocp (aoc21-day-25-solution))
 
 (provide 'aoc21)
 
