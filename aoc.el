@@ -46,6 +46,12 @@
         (push (string-to-number (match-string 0)) matches))
       (reverse matches))))
 
+(defun aoc-read (text)
+  (read (format "(%s)" text)))
+
+(defun aoc-chargrid (text)
+  (apply #'vector (split-string text "\n")))
+
 (defun pp-hash (table)
   (let ((data (nthcdr 2 (nbutlast
                          (split-string (pp-to-string table) "[()]")
