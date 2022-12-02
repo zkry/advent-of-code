@@ -36,6 +36,10 @@
   "Return each line of TEXT."
   (split-string (string-trim-right text "\n") "\n"))
 
+(defun aoc-read-lines (text)
+  "Return each line of TEXT."
+  (seq-map 'aoc-read (aoc-lines text)))
+
 (defun aoc-ints (text)
   "Extract all of the integers from TEXT."
   (with-temp-buffer
@@ -77,7 +81,7 @@
   "Return groups of TEXT."
   (split-string (string-trim-right text "\n") "\n\n"))
 
-(defun aoc-groups-of (text subdiv-fn)
+(defun aoc-groups-of (subdiv-fn text)
   "Return groups of TEXT parsed by SUBDIV-FN."
   (let ((groups (split-string (string-trim-right text "\n") "\n\n")))
     (seq-map subdiv-fn groups)))
