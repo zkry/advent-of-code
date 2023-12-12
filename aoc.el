@@ -109,6 +109,23 @@
                  parse))
              lines)))
 
+(defun range-shift (amount range)
+  "Shift RANGE by AMOUNT."
+  (pcase range
+    ((pred numberp)
+     (+ amount range))
+    ((pred (lambda (x) (null (cdr (last x)))))
+     (--map (range-shift amount it) range))
+    (`(,a . ,b)
+     (cons (+ a amount)
+           (+ b amount)))))
+
+(defun range-sort-normalize (range)
+  (seq-sort-by (lambda (x) (if (consp x) (car x) x))
+               '<
+               (range-normalize range)))
+
+
 (provide 'aoc)
 
 ;;; aoc.el ends here
