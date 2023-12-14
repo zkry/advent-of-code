@@ -152,6 +152,61 @@
      adj-poss)
     (list sum gear-sum)))
 
+;;; Day 4
+
+(defconst aoc-day4-input (f-read "inputs/day4.txt"))
+
+(defun aoc-day4-parse-input (text)
+  (let* ((lines (string-lines text)))
+    (seq-map
+     (lambda (line)
+       (let* ((parts (string-split line " | " t))
+              (winning-numbers (cdr (aoc-ints (car parts))))
+              (card-numbers (aoc-ints (cadr parts))))
+         (list winning-numbers card-numbers)))
+     lines)))
+
+(defun aoc-day4-card-to-pt1-pts (card)
+  (pcase-let ((score 0)
+              (`(,winning-numbers ,card-numbers) card))
+    (dolist (card-number card-numbers)
+      (when (member card-number winning-numbers)
+        (if (= 0 score)
+            (setq score 1)
+          (setq score (* score 2)))))
+    score))
+
+(defun aoc-day4-1 ()
+  (let* ((data (aoc-day4-parse-input aoc-day4-input)))
+    (-sum (-map #'aoc-day4-card-to-pt1-pts data))))
+
+(defun aoc-day4-card-score (card)
+  (pcase-let ((score 0)
+              (`(,winning-numbers ,card-numbers) card))
+    (dolist (card-number card-numbers)
+      (when (member card-number winning-numbers)
+        (cl-incf score)))
+    score))
+
+(defvar aoc-day4-cache nil)
+
+(defun aoc-day4-final-card-score (scores)
+  (if (not scores)
+      0
+    (if-let ((score (ht-get aoc-day4-cache scores)))
+        score
+      (let* ((top (car scores))
+             (copy-scores (-sum (-map #'aoc-day4-final-card-score (-take top (-tails (cdr scores))))))
+             (total-score (1+ copy-scores)))
+        (ht-set aoc-day4-cache scores total-score)
+        total-score))))
+
+(defun aoc-day4-2 ()
+  (let* ((aoc-day4-cache (ht-create))
+         (data (aoc-day4-parse-input aoc-day4-input))
+         (scores (-map #'aoc-day4-card-score data)))
+    (-sum (-map #'aoc-day4-final-card-score (-tails scores)))))
+
 
 ;;; day 5
 
@@ -196,15 +251,14 @@
    (-partition 2 seeds)))
 
 (defun aoc-day5-map-ranges (source-ranges mapping)
-  (aocp "==========================================")
   (setq source-ranges (range-sort-normalize source-ranges))
   (let ((res '()))
     (maphash
      (lambda (map-range map-amt)
-       (let ((overlap (range-intersection source-ranges map-range)))
+       (let ((overlap (range-intersection-simple source-ranges map-range)))
          (when overlap
+           (aocp (list map-range map-amt overlap (range-shift map-amt overlap)))
            (setq res (range-concat res (range-shift map-amt overlap)))
-           (aocp (list 'range-difference source-ranges overlap))
            (setq source-ranges (range-difference source-ranges overlap)))))
      mapping)
     (range-concat res source-ranges)))
@@ -218,21 +272,6 @@
             #'aoc-day5-map-ranges
             seed-ranges
             stages)))))
-
-(defconst aoc-day5-seeds '(
-                           ;;929142010 467769747
-                                     ;; 2497466808 210166838
-                                     ;; 3768123711 33216796
-                                     ;; 1609270159 86969850
-                                     ;; 199555506 378609832
-                                     ;; 1840685500 314009711
-                                     ;; 1740069852 36868255
-                           2161129344 170490105
-                              ;;2869967743 265455365
-                              ;;           3984276455 31190888
-                                         ))
-
-(aoc-day5-2)
 
 (provide 'oac)
 ;;; aoc.el ends here

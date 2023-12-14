@@ -120,6 +120,16 @@
      (cons (+ a amount)
            (+ b amount)))))
 
+(defun range-intersection-simple (range1 range2)
+  (let* ((intersection '()))
+    (seq-map
+     (lambda (rng)
+       (let ((overlap (range-intersection rng range2)))
+         (when overlap
+           (setq intersection (range-concat intersection overlap)))))
+     range1)
+    intersection))
+
 (defun range-sort-normalize (range)
   (seq-sort-by (lambda (x) (if (consp x) (car x) x))
                '<
