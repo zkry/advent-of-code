@@ -7,6 +7,25 @@
 ;;; Code:
 
 (require 'aoc)
+(require 'dash)
+
+
+
+;;; Day 2
+
+(defun aoc24-day2-safe-p (level &optional no-expand)
+  (let ((diffs (--map (- (car it) (cadr it)) (-partition-in-steps 2 1 level))))
+    (or (and (or (--every (> 0 it) diffs) (--every (< 0 it) diffs))
+             (--every (<= (abs it) 3) diffs))
+        (and (not no-expand)
+             (--some (aoc24-day2-safe-p it t)
+                     (--map (-remove-at-indices (list it) level) (number-sequence 0 (1- (length level)))))))))
+
+(defun aoc24-day2 ()
+  (->> (f-read "./inputs/2024/day2.txt")
+       (aoc-lines)
+       (seq-map #'aoc-ints)
+       (-count #'aoc24-day2-safe-p)))
 
 
 ;;; Day 3
