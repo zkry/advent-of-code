@@ -9,6 +9,20 @@
 (require 'aoc)
 (require 'dash)
 
+
+;;; Day 1
+
+(defun aoc24-day1 ()
+  (let* ((numbers (aoc-ints (f-read "./inputs/2024/day1.txt")))
+         (left (-sort #'< (-flatten (-partition-in-steps 1 2 numbers))))
+         (right (-sort #'< (-flatten (-partition-in-steps 1 2 (cdr numbers))))))
+    (-reduce #'+ (seq-mapn (lambda (a b) (abs (- a b))) left right))))
+
+(defun aoc24-day2 ()
+  (let* ((numbers (aoc-ints (f-read "./inputs/2024/day1.txt")))
+         (left (-flatten (-partition-in-steps 1 2 numbers)))
+         (right-freqs (-frequencies (-flatten (-partition-in-steps 1 2 (cdr numbers))))))
+    (-reduce #'+ (--map (* (alist-get it right-freqs 0) it) left))))
 
 
 ;;; Day 2
